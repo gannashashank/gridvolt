@@ -179,6 +179,43 @@ app.post('/api/auth/complete-profile', authenticateToken, async (req: Authentica
   }
 });
 
+// 1.5 Profiles endpoints
+app.get('/api/profiles', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (req.user?.role === 'admin') {
+      const list = await dbQuery('SELECT * FROM profiles');
+      res.json(list);
+    } else {
+      const profile = await dbGet('SELECT * FROM profiles WHERE id = ?', [req.user?.id]);
+      res.json(profile ? [profile] : []);
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/profiles/complete-profile', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  const { name, phone, ev_model, license_plate, vehicle_type, service_capability } = req.body;
+  try {
+    await dbRun(
+      'UPDATE profiles SET name = ?, phone = ?, ev_model = ?, license_plate = ?, vehicle_type = ?, service_capability = ? WHERE id = ?',
+      [
+        name,
+        phone,
+        ev_model || null,
+        license_plate || null,
+        vehicle_type || null,
+        service_capability || null,
+        req.user?.id
+      ]
+    );
+    const updated = await dbGet('SELECT * FROM profiles WHERE id = ?', [req.user?.id]);
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 2. Providers endpoints
 app.get('/api/providers', async (req: Request, res: Response) => {
   try {
