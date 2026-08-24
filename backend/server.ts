@@ -265,7 +265,7 @@ app.put('/api/providers/status', authenticateToken, async (req: AuthenticatedReq
 });
 
 // 3. Requests core workflow (Intelligent Dispatch and Pricing)
-app.post('/api/requests', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+app.post(['/api/requests', '/api/assistance_requests'], authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const { latitude, longitude, service_type } = req.body;
   if (!latitude || !longitude) {
     return res.status(400).json({ error: 'Latitude and Longitude are required for emergency request' });
@@ -406,7 +406,7 @@ app.post('/api/requests', authenticateToken, async (req: AuthenticatedRequest, r
   }
 });
 
-app.get('/api/requests/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+app.get(['/api/requests/:id', '/api/assistance_requests/:id'], authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const request = await dbGet('SELECT * FROM assistance_requests WHERE id = ?', [req.params.id]);
     if (!request) return res.status(404).json({ error: 'Assistance request not found' });
@@ -431,7 +431,7 @@ app.get('/api/requests/:id', authenticateToken, async (req: AuthenticatedRequest
   }
 });
 
-app.get('/api/requests', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+app.get(['/api/requests', '/api/assistance_requests'], authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = `
       SELECT r.id, r.user_id, r.provider_id, r.latitude, r.longitude, r.status, r.created_at,
@@ -461,7 +461,7 @@ app.get('/api/requests', authenticateToken, async (req: AuthenticatedRequest, re
   }
 });
 
-app.put('/api/requests/:id/status', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+app.put(['/api/requests/:id/status', '/api/assistance_requests/:id/status'], authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
 

@@ -141,6 +141,41 @@ app.post('/api/auth/complete-profile', authenticateToken, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// 1.5 Profiles endpoints
+app.get('/api/profiles', authenticateToken, async (req, res) => {
+    try {
+        if (req.user?.role === 'admin') {
+            const list = await (0, db_1.dbQuery)('SELECT * FROM profiles');
+            res.json(list);
+        }
+        else {
+            const profile = await (0, db_1.dbGet)('SELECT * FROM profiles WHERE id = ?', [req.user?.id]);
+            res.json(profile ? [profile] : []);
+        }
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+app.post('/api/profiles/complete-profile', authenticateToken, async (req, res) => {
+    const { name, phone, ev_model, license_plate, vehicle_type, service_capability } = req.body;
+    try {
+        await (0, db_1.dbRun)('UPDATE profiles SET name = ?, phone = ?, ev_model = ?, license_plate = ?, vehicle_type = ?, service_capability = ? WHERE id = ?', [
+            name,
+            phone,
+            ev_model || null,
+            license_plate || null,
+            vehicle_type || null,
+            service_capability || null,
+            req.user?.id
+        ]);
+        const updated = await (0, db_1.dbGet)('SELECT * FROM profiles WHERE id = ?', [req.user?.id]);
+        res.json(updated);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 // 2. Providers endpoints
 app.get('/api/providers', async (req, res) => {
     try {
@@ -188,7 +223,7 @@ app.put('/api/providers/status', authenticateToken, async (req, res) => {
     }
 });
 // 3. Requests core workflow (Intelligent Dispatch and Pricing)
-app.post('/api/requests', authenticateToken, async (req, res) => {
+app.post(['/api/requests', '/api/assistance_requests'], authenticateToken, async (req, res) => {
     const { latitude, longitude, service_type } = req.body;
     if (!latitude || !longitude) {
         return res.status(400).json({ error: 'Latitude and Longitude are required for emergency request' });
@@ -304,7 +339,7 @@ app.post('/api/requests', authenticateToken, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-app.get('/api/requests/:id', authenticateToken, async (req, res) => {
+app.get(['/api/requests/:id', '/api/assistance_requests/:id'], authenticateToken, async (req, res) => {
     try {
         const request = await (0, db_1.dbGet)('SELECT * FROM assistance_requests WHERE id = ?', [req.params.id]);
         if (!request)
@@ -328,7 +363,7 @@ app.get('/api/requests/:id', authenticateToken, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-app.get('/api/requests', authenticateToken, async (req, res) => {
+app.get(['/api/requests', '/api/assistance_requests'], authenticateToken, async (req, res) => {
     try {
         let query = `
       SELECT r.id, r.user_id, r.provider_id, r.latitude, r.longitude, r.status, r.created_at,
@@ -357,7 +392,7 @@ app.get('/api/requests', authenticateToken, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-app.put('/api/requests/:id/status', authenticateToken, async (req, res) => {
+app.put(['/api/requests/:id/status', '/api/assistance_requests/:id/status'], authenticateToken, async (req, res) => {
     const { status } = req.body;
     if (!status)
         return res.status(400).json({ error: 'Status is required' });
