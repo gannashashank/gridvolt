@@ -122,9 +122,10 @@ export default function App() {
   // Strict Role Guard
   const enforceRoleGuard = (userProfile: any, targetPath: string) => {
     const role = userProfile?.role || 'user';
+    const clean = (targetPath || '/').replace(/%20/g, '-').replace(/ /g, '-');
 
     // If on auth paths while logged in, redirect to respective role root
-    if (['/login', '/signup', '/complete-profile', '/'].includes(targetPath)) {
+    if (['/login', '/signup', '/complete-profile', '/'].includes(clean)) {
       if (role === 'admin') navigate('/admin/dashboard');
       else if (role === 'provider') navigate('/provider/dashboard');
       else navigate('/app/home');
@@ -132,14 +133,14 @@ export default function App() {
     }
 
     // Role boundary checks
-    if (role === 'user' && !targetPath.startsWith('/app')) {
+    if (role === 'user' && !clean.startsWith('/app')) {
       navigate('/app/home');
-    } else if (role === 'provider' && !targetPath.startsWith('/provider')) {
+    } else if (role === 'provider' && !clean.startsWith('/provider')) {
       navigate('/provider/dashboard');
-    } else if (role === 'admin' && !targetPath.startsWith('/admin')) {
+    } else if (role === 'admin' && !clean.startsWith('/admin')) {
       navigate('/admin/dashboard');
     } else {
-      setCurrentPath(targetPath);
+      setCurrentPath(clean);
     }
   };
 
@@ -178,45 +179,48 @@ export default function App() {
       return <Login onLoginSuccess={setSessionUser} navigate={navigate} />;
     }
 
-    if (currentPath === '/complete-profile') {
+    const cleanPath = currentPath.replace(/%20/g, '-').replace(/ /g, '-');
+    const currentUser = profile || sessionUser;
+
+    if (cleanPath === '/complete-profile') {
       return (
         <CompleteProfile
-          user={profile || sessionUser}
+          user={currentUser}
           onComplete={() => verifyAndRoute(sessionUser)}
           navigate={navigate}
         />
       );
     }
 
-    const role = profile?.role || 'user';
+    const role = currentUser?.role || 'user';
 
     // 1. Customer Portal (/app/...)
     if (role === 'user') {
-      if (currentPath.startsWith('/app/request/')) {
-        const reqId = currentPath.split('/app/request/')[1] || routeParams.requestId;
+      if (cleanPath.startsWith('/app/request/')) {
+        const reqId = cleanPath.split('/app/request/')[1] || routeParams.requestId;
         return <CustomerRequest requestId={reqId} navigate={navigate} />;
       }
-      if (currentPath === '/app/history') {
-        return <CustomerHistory user={profile} navigate={navigate} />;
+      if (cleanPath === '/app/history') {
+        return <CustomerHistory user={currentUser} navigate={navigate} />;
       }
-      if (currentPath === '/app/profile') {
-        return <CustomerProfile user={profile} navigate={navigate} />;
+      if (cleanPath === '/app/profile') {
+        return <CustomerProfile user={currentUser} navigate={navigate} />;
       }
-      return <CustomerHome user={profile} navigate={navigate} />;
+      return <CustomerHome user={currentUser} navigate={navigate} />;
     }
 
     // 2. Provider Portal (/provider/...)
     if (role === 'provider') {
-      if (currentPath.startsWith('/provider/job/')) {
-        const jobId = currentPath.split('/provider/job/')[1] || routeParams.jobId;
-        return <ProviderJob jobId={jobId} user={profile} navigate={navigate} />;
+      if (cleanPath.startsWith('/provider/job/')) {
+        const jobId = cleanPath.split('/provider/job/')[1] || routeParams.jobId;
+        return <ProviderJob jobId={jobId} user={currentUser} navigate={navigate} />;
       }
-      if (currentPath === '/provider/history') {
-        return <ProviderHistory user={profile} navigate={navigate} />;
+      if (cleanPath === '/provider/history') {
+        return <ProviderHistory user={currentUser} navigate={navigate} />;
       }
       return (
         <ProviderDashboard
-          user={profile}
+          user={currentUser}
           navigate={navigate}
           online={providerOnline}
           onToggleOnline={toggleProviderOnline}
@@ -226,25 +230,25 @@ export default function App() {
 
     // 3. Admin Portal (/admin/...)
     if (role === 'admin') {
-      if (currentPath === '/admin/users') {
-        return <AdminUsers user={profile} navigate={navigate} />;
+      if (cleanPath === '/admin/users') {
+        return <AdminUsers user={currentUser} navigate={navigate} />;
       }
-      if (currentPath === '/admin/providers') {
-        return <AdminProviders user={profile} navigate={navigate} />;
+      if (cleanPath === '/admin/providers') {
+        return <AdminProviders user={currentUser} navigate={navigate} />;
       }
-      if (currentPath === '/admin/requests') {
+      if (cleanPath === '/admin/requests') {
         return (
           <AdminRequests
-            user={profile}
+            user={currentUser}
             navigate={navigate}
             initialFocusId={routeParams.focusId}
           />
         );
       }
-      return <AdminDashboard user={profile} navigate={navigate} />;
+      return <AdminDashboard user={currentUser} navigate={navigate} />;
     }
 
-    return <CustomerHome user={profile} navigate={navigate} />;
+    return <CustomerHome user={currentUser} navigate={navigate} />;
   };
 
   const showNavbar = sessionUser && currentPath !== '/complete-profile';

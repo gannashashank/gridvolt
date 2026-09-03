@@ -69,6 +69,39 @@ function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: nu
 
 // REST API Endpoints
 
+app.get('/', (req: Request, res: Response) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>GridVolt Backend API</title>
+        <style>
+          body { background: #0A0A0B; color: #FFFFFF; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; margin: 0; text-align: center; }
+          .card { background: #141518; border: 1px solid #22242A; padding: 40px; border-radius: 4px; max-width: 500px; }
+          .badge { display: inline-block; padding: 4px 12px; background: rgba(255, 106, 0, 0.12); color: #FF6A00; border: 1px solid #FF6A00; font-size: 11px; margin-bottom: 20px; letter-spacing: 2px; }
+          h1 { font-size: 20px; letter-spacing: 3px; font-weight: normal; margin-bottom: 8px; }
+          p { color: #8A8D93; font-size: 13px; line-height: 1.6; }
+          .btn { display: inline-block; margin-top: 24px; padding: 12px 24px; background: #FF6A00; color: #fff; text-decoration: none; font-weight: bold; font-size: 12px; letter-spacing: 2px; }
+          .btn:hover { background: #E05D00; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="badge">API BACKEND // PORT 5000</div>
+          <h1>GRIDVOLT REST & SSE ENGINE</h1>
+          <p>You have navigated to the backend service. The web application client is running on port 3000.</p>
+          <a class="btn" href="http://localhost:3000">OPEN WEB APPLICATION (PORT 3000) →</a>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok', service: 'GridVolt Backend', timestamp: new Date().toISOString() });
+});
+
 // 1. Auth endpoints
 app.post('/api/auth/signup', async (req: Request, res: Response) => {
   const { name, email, phone, password, role, ev_model, license_plate, vehicle_type, service_capability } = req.body;

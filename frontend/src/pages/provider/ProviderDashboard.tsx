@@ -20,11 +20,12 @@ export default function ProviderDashboard({
   const [loading, setLoading] = useState(true);
 
   const loadProviderData = async () => {
+    if (!user?.id) return;
     try {
       // 1. Get provider record
       const { data: provList } = await supabase.from('providers').select('*');
       if (provList) {
-        const me = provList.find((p: any) => p.profile_id === user.id);
+        const me = provList.find((p: any) => p.profile_id === user?.id);
         if (me) setProvider(me);
       }
 
@@ -34,13 +35,13 @@ export default function ProviderDashboard({
         // Active assigned jobs
         const active = allReqs.filter(
           (r: any) =>
-            r.provider_id === user.id && !['completed', 'cancelled'].includes(r.status)
+            r.provider_id === user?.id && !['completed', 'cancelled'].includes(r.status)
         );
         setAssignedJobs(active);
 
         // Incoming / requested jobs
         const pending = allReqs.filter(
-          (r: any) => r.provider_id === user.id && r.status === 'requested'
+          (r: any) => r.provider_id === user?.id && r.status === 'requested'
         );
         setIncomingJobs(pending);
       }
@@ -52,6 +53,7 @@ export default function ProviderDashboard({
   };
 
   useEffect(() => {
+    if (!user?.id) return;
     loadProviderData();
 
     // Listen to real-time dispatches
@@ -61,7 +63,7 @@ export default function ProviderDashboard({
         'postgres_changes',
         { event: '*', schema: 'public', table: 'assistance_requests' },
         (payload: any) => {
-          if (payload.new && payload.new.provider_id === user.id) {
+          if (payload.new && payload.new.provider_id === user?.id) {
             loadProviderData();
           }
         }
@@ -71,7 +73,7 @@ export default function ProviderDashboard({
     return () => {
       subscription.unsubscribe();
     };
-  }, [user.id]);
+  }, [user?.id]);
 
   const handleAcceptJob = async (jobId: string) => {
     try {

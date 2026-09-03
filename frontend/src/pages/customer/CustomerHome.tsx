@@ -25,6 +25,8 @@ export default function CustomerHome({ user, navigate }: CustomerHomeProps) {
 
   // Check for any ongoing active request
   useEffect(() => {
+    if (!user?.id) return;
+
     const fetchActiveRequest = async () => {
       try {
         const { data, error: reqErr } = await supabase
@@ -34,7 +36,7 @@ export default function CustomerHome({ user, navigate }: CustomerHomeProps) {
         if (!reqErr && data) {
           const ongoing = data.find(
             (r: any) =>
-              r.user_id === user.id && !['completed', 'cancelled'].includes(r.status)
+              r.user_id === user?.id && !['completed', 'cancelled'].includes(r.status)
           );
           if (ongoing) setActiveRequest(ongoing);
         }
@@ -44,7 +46,7 @@ export default function CustomerHome({ user, navigate }: CustomerHomeProps) {
     };
 
     fetchActiveRequest();
-  }, [user.id]);
+  }, [user?.id]);
 
   const requestGeolocation = () => {
     setLocating(true);
