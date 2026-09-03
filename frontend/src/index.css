@@ -4,46 +4,92 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased overflow-x-hidden;
-    background-image: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 1) 100%);
+    @apply bg-skyroot-black text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-skyroot-accent selection:text-white;
+    background-color: #0A0A0B;
   }
 }
 
-.glass-panel {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* Skyroot-style Restrained Glass & Panels */
+.skyroot-glass {
+  background: rgba(14, 15, 17, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-.neon-glow-cyan {
-  box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);
+.skyroot-card {
+  background-color: #141518;
+  border: 1px solid #22242A;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.neon-glow-green {
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+.skyroot-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background-color: #181A1F;
 }
 
-.neon-glow-red {
-  box-shadow: 0 0 25px rgba(244, 63, 94, 0.6);
+/* Atmospheric Photography Gradients */
+.hero-gradient-overlay {
+  background: linear-gradient(180deg, rgba(10, 10, 11, 0.3) 0%, rgba(10, 10, 11, 0.85) 60%, #0A0A0B 100%);
 }
 
-/* Override standard leaflet styling for dark theme mapping */
+.radial-vignette {
+  background: radial-gradient(circle at center, transparent 30%, #0A0A0B 90%);
+}
+
+/* Clean Dark Leaflet Theme */
 .leaflet-container {
-  background: #020617 !important;
+  background: #0A0A0B !important;
+  font-family: inherit !important;
 }
 
 .leaflet-tile {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%);
+}
+
+.leaflet-bar {
+  border: 1px solid #22242A !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+  overflow: hidden;
 }
 
 .leaflet-bar a {
-  background-color: rgba(15, 23, 42, 0.8) !important;
-  color: #fff !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: #141518 !important;
+  color: #E4E4E7 !important;
+  border-bottom: 1px solid #22242A !important;
 }
 
 .leaflet-bar a:hover {
-  background-color: rgba(6, 182, 212, 0.8) !important;
+  background-color: #1F2127 !important;
+  color: #FF6A00 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #141518 !important;
+  color: #F4F4F5 !important;
+  border: 1px solid #22242A !important;
+  border-radius: 6px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6) !important;
+}
+
+.leaflet-popup-tip {
+  background: #141518 !important;
+  border: 1px solid #22242A !important;
+}
+
+/* Subtle Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0B;
+}
+::-webkit-scrollbar-thumb {
+  background: #22242A;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3F3F46;
 }

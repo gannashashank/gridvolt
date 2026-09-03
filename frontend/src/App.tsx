@@ -1,28 +1,62 @@
 import React, { useEffect, useState } from 'react';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import CompleteProfile from './pages/CompleteProfile';
-import Home from './pages/Home';
-import RequestDetails from './pages/RequestDetails';
-import ProviderDashboard from './pages/ProviderDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import History from './pages/History';
+import Navbar from './components/Navbar';
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
+import CompleteProfile from './pages/auth/CompleteProfile';
+
+// Customer Portal
+import CustomerHome from './pages/customer/CustomerHome';
+import CustomerRequest from './pages/customer/CustomerRequest';
+import CustomerHistory from './pages/customer/CustomerHistory';
+import CustomerProfile from './pages/customer/CustomerProfile';
+
+// Provider Portal
+import ProviderDashboard from './pages/provider/ProviderDashboard';
+import ProviderJob from './pages/provider/ProviderJob';
+import ProviderHistory from './pages/provider/ProviderHistory';
+
+// Admin Portal
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminProviders from './pages/admin/AdminProviders';
+import AdminRequests from './pages/admin/AdminRequests';
+
 import supabase from './lib/supabaseClient';
 
 export default function App() {
   const [sessionUser, setSessionUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [currentPage, setCurrentPage] = useState<string>('login');
+  const [currentPath, setCurrentPath] = useState<string>(
+    window.location.pathname === '/' ? '/login' : window.location.pathname
+  );
   const [routeParams, setRouteParams] = useState<any>({});
   const [authLoading, setAuthLoading] = useState(true);
+  const [providerOnline, setProviderOnline] = useState(true);
 
-  // Sync auth session state
+  // Sync state with browser URL
+  const navigate = (path: string, params: any = {}) => {
+    setRouteParams(params);
+    setCurrentPath(path);
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Initialize auth
   useEffect(() => {
     const initAuth = async () => {
       const { data } = await supabase.auth.getSession();
       if (data?.session?.user) {
         setSessionUser(data.session.user);
-        await checkProfileCompletion(data.session.user);
+        await verifyAndRoute(data.session.user);
       } else {
         setAuthLoading(false);
       }
@@ -30,150 +64,210 @@ export default function App() {
 
     initAuth();
 
-    const { data: authSubscription } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-      if (session?.user) {
-        setSessionUser(session.user);
-        await checkProfileCompletion(session.user);
-      } else {
-        setSessionUser(null);
-        setProfile(null);
-        setCurrentPage('login');
-        setAuthLoading(false);
+    const { data: authSubscription } = supabase.auth.onAuthStateChange(
+      async (event: any, session: any) => {
+        if (session?.user) {
+          setSessionUser(session.user);
+          await verifyAndRoute(session.user);
+        } else {
+          setSessionUser(null);
+          setProfile(null);
+          navigate('/login');
+          setAuthLoading(false);
+        }
       }
-    });
+    );
 
     return () => {
       authSubscription.subscription.unsubscribe();
     };
   }, []);
 
-  const checkProfileCompletion = async (user: any) => {
+  const verifyAndRoute = async (user: any) => {
     try {
-      const { data: prof, error } = await supabase
+      const { data: prof } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error || !prof) {
-        // Redirect to profile completion
+      if (!prof) {
         setProfile(user);
-        setCurrentPage('complete-profile');
+        navigate('/complete-profile');
+        setAuthLoading(false);
         return;
       }
 
       setProfile(prof);
 
-      // Check if profile fields are complete
+      // Check onboarding completion
       const isComplete =
         prof.name &&
         prof.phone &&
         (prof.role === 'user' ? prof.ev_model : prof.vehicle_type);
 
       if (!isComplete) {
-        setCurrentPage('complete-profile');
+        navigate('/complete-profile');
       } else {
-        // Route according to user role
-        if (prof.role === 'admin') {
-          setCurrentPage('admin');
-        } else if (prof.role === 'provider') {
-          setCurrentPage('provider');
-        } else {
-          setCurrentPage('home');
-        }
+        // Enforce route guard on initial load or current path
+        enforceRoleGuard(prof, window.location.pathname);
       }
     } catch (err) {
-      console.error('Failed to sync profile status:', err);
+      console.error('Failed to verify profile status:', err);
     } finally {
       setAuthLoading(false);
     }
   };
 
-  const navigate = (page: string, params: any = {}) => {
-    setRouteParams(params);
-    setCurrentPage(page);
+  // Strict Role Guard
+  const enforceRoleGuard = (userProfile: any, targetPath: string) => {
+    const role = userProfile?.role || 'user';
+
+    // If on auth paths while logged in, redirect to respective role root
+    if (['/login', '/signup', '/complete-profile', '/'].includes(targetPath)) {
+      if (role === 'admin') navigate('/admin/dashboard');
+      else if (role === 'provider') navigate('/provider/dashboard');
+      else navigate('/app/home');
+      return;
+    }
+
+    // Role boundary checks
+    if (role === 'user' && !targetPath.startsWith('/app')) {
+      navigate('/app/home');
+    } else if (role === 'provider' && !targetPath.startsWith('/provider')) {
+      navigate('/provider/dashboard');
+    } else if (role === 'admin' && !targetPath.startsWith('/admin')) {
+      navigate('/admin/dashboard');
+    } else {
+      setCurrentPath(targetPath);
+    }
+  };
+
+  const toggleProviderOnline = async () => {
+    const nextState = !providerOnline;
+    setProviderOnline(nextState);
+    if (profile?.id) {
+      try {
+        await supabase
+          .from('providers')
+          .update({ availability: nextState })
+          .eq('profile_id', profile.id);
+      } catch (err) {
+        console.error('Failed to update availability state:', err);
+      }
+    }
   };
 
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-2 border-t-cyan-400 rounded-full animate-spin"></div>
-        <p className="text-xs text-slate-400 mt-4 tracking-widest font-mono">Initializing GridVolt...</p>
+      <div className="min-h-screen bg-skyroot-black flex flex-col items-center justify-center font-mono text-xs text-white">
+        <div className="w-8 h-8 border-2 border-skyroot-accent border-t-transparent animate-spin mb-4"></div>
+        <span className="tracking-[0.25em] text-skyroot-muted uppercase">
+          INITIALIZING GRIDVOLT SYSTEMS...
+        </span>
       </div>
     );
   }
 
-  // Render correct page based on route guards
-  const renderPage = () => {
+  // Render Page Content
+  const renderCurrentView = () => {
     if (!sessionUser) {
-      if (currentPage === 'signup') {
+      if (currentPath === '/signup') {
         return <Signup onSignupSuccess={setSessionUser} navigate={navigate} />;
       }
       return <Login onLoginSuccess={setSessionUser} navigate={navigate} />;
     }
 
-    switch (currentPage) {
-      case 'complete-profile':
+    if (currentPath === '/complete-profile') {
+      return (
+        <CompleteProfile
+          user={profile || sessionUser}
+          onComplete={() => verifyAndRoute(sessionUser)}
+          navigate={navigate}
+        />
+      );
+    }
+
+    const role = profile?.role || 'user';
+
+    // 1. Customer Portal (/app/...)
+    if (role === 'user') {
+      if (currentPath.startsWith('/app/request/')) {
+        const reqId = currentPath.split('/app/request/')[1] || routeParams.requestId;
+        return <CustomerRequest requestId={reqId} navigate={navigate} />;
+      }
+      if (currentPath === '/app/history') {
+        return <CustomerHistory user={profile} navigate={navigate} />;
+      }
+      if (currentPath === '/app/profile') {
+        return <CustomerProfile user={profile} navigate={navigate} />;
+      }
+      return <CustomerHome user={profile} navigate={navigate} />;
+    }
+
+    // 2. Provider Portal (/provider/...)
+    if (role === 'provider') {
+      if (currentPath.startsWith('/provider/job/')) {
+        const jobId = currentPath.split('/provider/job/')[1] || routeParams.jobId;
+        return <ProviderJob jobId={jobId} user={profile} navigate={navigate} />;
+      }
+      if (currentPath === '/provider/history') {
+        return <ProviderHistory user={profile} navigate={navigate} />;
+      }
+      return (
+        <ProviderDashboard
+          user={profile}
+          navigate={navigate}
+          online={providerOnline}
+          onToggleOnline={toggleProviderOnline}
+        />
+      );
+    }
+
+    // 3. Admin Portal (/admin/...)
+    if (role === 'admin') {
+      if (currentPath === '/admin/users') {
+        return <AdminUsers user={profile} navigate={navigate} />;
+      }
+      if (currentPath === '/admin/providers') {
+        return <AdminProviders user={profile} navigate={navigate} />;
+      }
+      if (currentPath === '/admin/requests') {
         return (
-          <CompleteProfile
-            user={profile || sessionUser}
-            onComplete={() => checkProfileCompletion(sessionUser)}
+          <AdminRequests
+            user={profile}
             navigate={navigate}
+            initialFocusId={routeParams.focusId}
           />
         );
-      case 'home':
-        return <Home user={profile} navigate={navigate} />;
-      case 'request':
-        return <RequestDetails requestId={routeParams.requestId} navigate={navigate} />;
-      case 'provider':
-        return <ProviderDashboard user={profile} navigate={navigate} />;
-      case 'admin':
-        return <AdminDashboard user={profile} navigate={navigate} />;
-      case 'history':
-        return <History user={profile} navigate={navigate} />;
-      default:
-        return <Home user={profile} navigate={navigate} />;
+      }
+      return <AdminDashboard user={profile} navigate={navigate} />;
     }
+
+    return <CustomerHome user={profile} navigate={navigate} />;
   };
 
-  // Header Nav Bar (shown when logged in on customer/user screens)
-  const showHeader = sessionUser && ['home', 'history', 'request'].includes(currentPage);
+  const showNavbar = sessionUser && currentPath !== '/complete-profile';
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950">
-      {showHeader && (
-        <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-[1000] px-4 py-3">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <button onClick={() => navigate('home')} className="flex items-center gap-2">
-              <span className="text-xl">⚡</span>
-              <span className="font-black tracking-wider text-sm text-cyan-400">GRIDVOLT</span>
-            </button>
-
-            <div className="flex items-center gap-4 text-xs">
-              <span className="text-slate-400">
-                Driver Mode • <span className="text-cyan-400 font-semibold">{profile?.name}</span>
-              </span>
-              <button
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  navigate('login');
-                }}
-                className="text-[10px] text-slate-500 hover:text-slate-300 font-bold tracking-wide uppercase px-2 py-1 bg-slate-900 border border-slate-800 rounded transition"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </header>
+    <div className="min-h-screen bg-skyroot-black flex flex-col font-sans selection:bg-skyroot-accent selection:text-white">
+      {showNavbar && (
+        <Navbar
+          user={profile || sessionUser}
+          currentPath={currentPath}
+          navigate={navigate}
+          onlineStatus={providerOnline}
+          onToggleOnline={toggleProviderOnline}
+        />
       )}
 
-      <main className="flex-1">
-        {renderPage()}
-      </main>
+      <main className="flex-1">{renderCurrentView()}</main>
 
-      <footer className="py-6 border-t border-slate-900/60 bg-slate-950 text-center text-[10px] text-slate-600">
-        &copy; {new Date().getFullYear()} GridVolt. Operating exclusively in India bounds.
-      </footer>
+      {showNavbar && (
+        <footer className="py-6 border-t border-skyroot-border bg-skyroot-black text-center font-mono text-[10px] text-neutral-500 uppercase tracking-widest">
+          GRIDVOLT RESCUE SYSTEMS // GEOFENCED INDIA BOUNDS // SPEC 2026
+        </footer>
+      )}
     </div>
   );
 }

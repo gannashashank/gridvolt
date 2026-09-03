@@ -182,13 +182,43 @@ app.post('/api/auth/complete-profile', authenticateToken, async (req: Authentica
 // 1.5 Profiles endpoints
 app.get('/api/profiles', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const roleFilter = req.query.role as string;
     if (req.user?.role === 'admin') {
-      const list = await dbQuery('SELECT * FROM profiles');
+      let query = 'SELECT * FROM profiles';
+      const params: any[] = [];
+      if (roleFilter) {
+        query += ' WHERE role = ?';
+        params.push(roleFilter);
+      }
+      query += ' ORDER BY created_at DESC';
+      const list = await dbQuery(query, params);
       res.json(list);
     } else {
       const profile = await dbGet('SELECT * FROM profiles WHERE id = ?', [req.user?.id]);
       res.json(profile ? [profile] : []);
     }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/profiles/me', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  const { name, phone, ev_model, license_plate, vehicle_type, service_capability } = req.body;
+  try {
+    await dbRun(
+      'UPDATE profiles SET name = COALESCE(?, name), phone = COALESCE(?, phone), ev_model = COALESCE(?, ev_model), license_plate = COALESCE(?, license_plate), vehicle_type = COALESCE(?, vehicle_type), service_capability = COALESCE(?, service_capability) WHERE id = ?',
+      [
+        name,
+        phone,
+        ev_model,
+        license_plate,
+        vehicle_type,
+        service_capability,
+        req.user?.id
+      ]
+    );
+    const updated = await dbGet('SELECT * FROM profiles WHERE id = ?', [req.user?.id]);
+    res.json(updated);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -492,6 +522,21 @@ app.put(['/api/requests/:id/status', '/api/assistance_requests/:id/status'], aut
 
     broadcastEvent('request_update', updatedRequest);
     res.json(updatedRequest);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get(['/api/requests/:id/events', '/api/assistance_requests/:id/events'], authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const events = await dbQuery(`
+      SELECT e.*, p.name as actor_name, p.role as actor_role
+      FROM request_events e
+      LEFT JOIN profiles p ON e.actor_id = p.id
+      WHERE e.request_id = ?
+      ORDER BY e.timestamp ASC
+    `, [req.params.id]);
+    res.json(events);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

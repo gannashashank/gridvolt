@@ -7,21 +7,26 @@ export default {
   theme: {
     extend: {
       colors: {
-        cyber: {
-          dark: '#020617',
-          neonCyan: '#06b6d4',
-          neonGreen: '#10b981',
-          neonRed: '#f43f5e',
-          glass: 'rgba(15, 23, 42, 0.45)',
-          glassBorder: 'rgba(255, 255, 255, 0.08)',
-        }
+        skyroot: {
+          black: '#0A0A0B',
+          surface: '#0E0F11',
+          card: '#141518',
+          cardHover: '#181A1F',
+          border: '#22242A',
+          borderSubtle: 'rgba(255, 255, 255, 0.07)',
+          muted: '#8A8D93',
+          accent: '#FF6A00',
+          accentHover: '#E05D00',
+          accentMuted: 'rgba(255, 106, 0, 0.12)',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
-      animation: {
-        'pulse-fast': 'pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      }
+      letterSpacing: {
+        'ultra-wide': '0.25em',
+      },
     },
   },
   plugins: [],
