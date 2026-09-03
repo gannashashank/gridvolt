@@ -81,8 +81,20 @@ export default function CompleteProfile({ user, onComplete, navigate }: Complete
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="skyroot-card p-8 shadow-2xl">
           {error && (
-            <div className="mb-6 p-3 bg-red-950/40 border border-red-500/40 text-red-400 text-xs font-mono">
-              [ERROR] {error}
+            <div className="mb-6 p-3 bg-red-950/40 border border-red-500/40 text-red-400 text-xs font-mono space-y-2">
+              <div>[ERROR] {error}</div>
+              {error.toLowerCase().includes('token') && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    navigate('/login');
+                  }}
+                  className="block w-full py-1.5 px-2 bg-skyroot-accent text-white font-mono text-[10px] uppercase tracking-wider font-bold text-center hover:bg-skyroot-accentHover transition-colors"
+                >
+                  RE-AUTHORIZE LOGIN SESSION →
+                </button>
+              )}
             </div>
           )}
 

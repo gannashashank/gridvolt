@@ -191,7 +191,16 @@ class MockSupabaseClient {
         body: body ? JSON.stringify(body) : undefined,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Request failed');
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          if (data?.error?.includes('token') || data?.error?.includes('expired') || data?.error?.includes('Invalid')) {
+            this.token = null;
+            localStorage.removeItem('gv_token');
+            localStorage.removeItem('gv_user');
+          }
+        }
+        throw new Error(data.error || 'Request failed');
+      }
       return data;
     };
 
