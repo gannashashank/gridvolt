@@ -11,10 +11,19 @@ This document records key decisions made during the design and development of Gr
 * **Decision**: Use a default coordinate of Udaipur, India (`24.5854, 73.7125`) for mock positions. If the browser's geolocation API returns coordinates outside the bounding box `[[6.5, 68.0], [37.5, 97.5]]`, the location is clamped back to India and a notification is displayed.
 * **Rationale**: Hardlocks the app's service area to India, preventing overseas test coordinates from breaking the map layout or dispatch logic.
 
-## 3. Procedural 3D Assets
-* **Decision**: Create the EV car and charging icons procedurally using React Three Fiber mesh primitives (boxes, cylinders, spheres, rings) rather than fetching static GLTF assets.
-* **Rationale**: Ensures the prototype runs immediately without network requests, heavy assets, or broken 3D models.
+## 3. Skyroot Aerospace Editorial Design System
+* **Decision**: Adopt Skyroot Aerospace's (`skyroot.in`) minimal, high-contrast visual language with near-black backgrounds (`#0A0A0B`), hairline borders, mono telemetry tags, and electric amber (`#FF6A00`) status accents. All legacy 3D spinning meshes were removed in favor of clean Vikram-I style spec-bullet cards and linear horizontal steppers.
+* **Rationale**: Fulfills the prompt's strict requirement for a restrained, confident editorial brand across all three portals without noisy gamification.
 
-## 4. Single-Port Developer Experience
-* **Decision**: We will run a monorepo setup. The backend will run on port `5000` and proxy frontend requests, or we can boot them concurrently using standard node scripts.
-* **Rationale**: Easy local setup.
+## 4. Section 4A Remote Assistance ("Book for Someone Else")
+* **Decision**: Implement a segmented dispatch scope toggle on the SOS screen (`[ REQUEST FOR MYSELF ]` vs `[ FOR SOMEONE ELSE ]`).
+* **Implementation Details**:
+  - For Self: Browser Geolocation captures device GPS, auto-filling `onsite_contact_name` and `onsite_contact_phone` from the requester's profile.
+  - For Someone Else: Decouples GPS auto-capture. Employs OpenStreetMap Nominatim geocoding (`countrycodes=in`) and interactive Leaflet map pin-drop to define target coordinates anywhere in India (e.g. Hyderabad, Delhi, Udaipur). Requires stranded person's name and contact number.
+  - Dispatch Algorithm: Ranks providers and computes tariffs strictly based on the target breakdown coordinates, not the requester's device location.
+  - Provider Cockpit: Displays the on-site person's phone number as the primary direct-call CTA (`tel:...`) so the dispatched unit contacts the actual stranded driver.
+  - Ownership Retention: The requester's account (`user_id`) retains full live tracking, cancellation control, and audit history.
+
+## 5. Single-Port & Concurrent Developer Experience
+* **Decision**: Monorepo orchestration runs Express backend on port `5000` and Vite frontend on port `3000` concurrently via `npm run dev`. Express root `/` provides a helpful redirect to the frontend with an automated health check endpoint at `/api/health`.
+* **Rationale**: Out-of-the-box local execution with zero manual configuration.

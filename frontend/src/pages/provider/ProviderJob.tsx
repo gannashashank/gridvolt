@@ -339,27 +339,49 @@ export default function ProviderJob({ jobId, user, navigate }: ProviderJobProps)
               </div>
             </div>
 
-            {/* Target Driver Profile */}
-            <div className="skyroot-card p-6">
-              <span className="text-[10px] font-mono tracking-[0.2em] text-skyroot-muted uppercase block mb-2">
-                CUSTOMER INFORMATION
-              </span>
-              <div className="space-y-2 text-xs font-mono">
+            {/* Target Breakdown Contact Card (Section 4A) */}
+            <div className="skyroot-card p-6 border-skyroot-accent/40">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-mono tracking-[0.2em] text-skyroot-accent uppercase block">
+                  ON-SITE CONTACT (PRIMARY)
+                </span>
+                <span className="text-[9px] font-mono px-2 py-0.5 border border-skyroot-border text-neutral-400 uppercase">
+                  {job.is_for_self === 0 || job.is_for_self === false ? 'REMOTE RECIPIENT' : 'VEHICLE OWNER'}
+                </span>
+              </div>
+
+              <div className="mb-4">
+                <span className="text-base font-medium text-white block uppercase">
+                  {job.onsite_contact_name || job.user_name || 'Stranded Person'}
+                </span>
+                <span className="text-lg font-mono text-emerald-400 font-bold block mt-0.5">
+                  {job.onsite_contact_phone || job.user_phone || '+91 9876543210'}
+                </span>
+              </div>
+
+              {/* Direct Call CTA */}
+              <a
+                href={`tel:${job.onsite_contact_phone || job.user_phone || '+919876543210'}`}
+                className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 text-skyroot-black font-mono text-xs uppercase tracking-wider font-bold transition-all flex items-center justify-center space-x-2 mb-4"
+              >
+                <span>📞 CALL ON-SITE PERSON DIRECTLY</span>
+              </a>
+
+              {/* Account Requester & Vehicle Specs */}
+              <div className="space-y-2 text-xs font-mono pt-3 border-t border-skyroot-border/80">
+                {(job.is_for_self === 0 || job.is_for_self === false) && (
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400 uppercase">Requester Account</span>
+                    <span className="text-neutral-300">{job.user_name} ({job.user_phone})</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span className="text-neutral-400 uppercase">Driver</span>
-                  <span className="text-white">{job.user_name || 'EV Driver'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-400 uppercase">Contact Phone</span>
-                  <span className="text-skyroot-accent">{job.user_phone || '+91 9876543210'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-400 uppercase">Vehicle</span>
-                  <span className="text-white">{job.ev_model || 'Tata Nexon EV'}</span>
+                  <span className="text-neutral-400 uppercase">Vehicle Model</span>
+                  <span className="text-white">{job.ev_model || 'Standard EV'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-400 uppercase">License Plate</span>
-                  <span className="text-white">{job.license_plate || 'DL1CA1234'}</span>
+                  <span className="text-white">{job.license_plate || '—'}</span>
                 </div>
               </div>
             </div>

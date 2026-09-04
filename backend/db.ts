@@ -85,6 +85,10 @@ export async function initDb() {
       provider_id TEXT,
       latitude REAL,
       longitude REAL,
+      is_for_self BOOLEAN DEFAULT 1,
+      onsite_contact_name TEXT,
+      onsite_contact_phone TEXT,
+      service_type TEXT,
       status TEXT DEFAULT 'requested',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(user_id) REFERENCES profiles(id),
@@ -126,6 +130,20 @@ export async function initDb() {
       FOREIGN KEY(request_id) REFERENCES assistance_requests(id)
     )
   `);
+
+  // Safe runtime schema migration for existing SQLite database
+  try {
+    await dbRun('ALTER TABLE assistance_requests ADD COLUMN is_for_self BOOLEAN DEFAULT 1');
+  } catch (e) {}
+  try {
+    await dbRun('ALTER TABLE assistance_requests ADD COLUMN onsite_contact_name TEXT');
+  } catch (e) {}
+  try {
+    await dbRun('ALTER TABLE assistance_requests ADD COLUMN onsite_contact_phone TEXT');
+  } catch (e) {}
+  try {
+    await dbRun('ALTER TABLE assistance_requests ADD COLUMN service_type TEXT');
+  } catch (e) {}
 
   // Check if seeding is needed
   const userCount = await dbGet('SELECT COUNT(*) as count FROM auth_users');

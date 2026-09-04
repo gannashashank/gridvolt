@@ -52,6 +52,10 @@ CREATE TABLE IF NOT EXISTS public.assistance_requests (
   provider_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
+  is_for_self BOOLEAN DEFAULT TRUE,
+  onsite_contact_name TEXT,
+  onsite_contact_phone TEXT,
+  service_type TEXT,
   status TEXT DEFAULT 'requested' CHECK(status IN ('requested', 'accepted', 'en_route', 'arrived', 'servicing', 'completed', 'cancelled')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -339,9 +339,24 @@ app.put('/api/providers/status', authenticateToken, async (req: AuthenticatedReq
 
 // 3. Requests core workflow (Intelligent Dispatch and Pricing)
 app.post(['/api/requests', '/api/assistance_requests'], authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  const { latitude, longitude, service_type } = req.body;
+  const { latitude, longitude, service_type, is_for_self, onsite_contact_name, onsite_contact_phone } = req.body;
   if (!latitude || !longitude) {
     return res.status(400).json({ error: 'Latitude and Longitude are required for emergency request' });
+  }
+
+  // Section 4A: Remote Request & On-Site Contact Resolution
+  const isSelf = is_for_self !== false && is_for_self !== 'false';
+  let contactName = onsite_contact_name;
+  let contactPhone = onsite_contact_phone;
+
+  if (isSelf) {
+    const userProfile = await dbGet('SELECT name, phone FROM profiles WHERE id = ?', [req.user?.id]);
+    contactName = userProfile?.name || 'EV Driver';
+    contactPhone = userProfile?.phone || '';
+  } else {
+    if (!contactName || !contactPhone) {
+      return res.status(400).json({ error: "Stranded person's name and phone number are required for remote requests" });
+    }
   }
 
   try {
@@ -369,7 +384,6 @@ app.post(['/api/requests', '/api/assistance_requests'], authenticateToken, async
       const eta = Math.round(distance * 2.5 + 5);
 
       // capability mismatch penalty: check if requested service matches capability
-      // if service_type = towing, check if vehicle_type = truck or capability includes towing
       let capabilityMismatch = 0;
       if (service_type) {
         const capabilityText = (prov.service_capability || '').toLowerCase();
@@ -411,7 +425,6 @@ app.post(['/api/requests', '/api/assistance_requests'], authenticateToken, async
     const chosenProvider = rankedWithScores[0];
 
     // 3. Pricing Calculation
-    // formula: estimatedCost = baseServiceFee + (distanceKm * perKmRate) + (isEmergencyHours ? emergencySurcharge : 0)
     const baseServiceFee = 299;
     const perKmRate = 18;
     const emergencySurcharge = 150;
@@ -427,8 +440,19 @@ app.post(['/api/requests', '/api/assistance_requests'], authenticateToken, async
     const quoteId = 'quote_' + Math.random().toString(36).substr(2, 9);
 
     await dbRun(
-      'INSERT INTO assistance_requests (id, user_id, provider_id, latitude, longitude, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [requestId, req.user?.id, chosenProvider.profile_id, latitude, longitude, 'requested']
+      'INSERT INTO assistance_requests (id, user_id, provider_id, latitude, longitude, is_for_self, onsite_contact_name, onsite_contact_phone, service_type, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        requestId,
+        req.user?.id,
+        chosenProvider.profile_id,
+        latitude,
+        longitude,
+        isSelf ? 1 : 0,
+        contactName,
+        contactPhone,
+        service_type || 'Emergency Charging Rescue',
+        'requested'
+      ]
     );
 
     await dbRun(
@@ -450,6 +474,10 @@ app.post(['/api/requests', '/api/assistance_requests'], authenticateToken, async
       provider_id: chosenProvider.profile_id,
       latitude,
       longitude,
+      is_for_self: isSelf,
+      onsite_contact_name: contactName,
+      onsite_contact_phone: contactPhone,
+      service_type: service_type || 'Emergency Charging Rescue',
       status: 'requested',
       created_at: new Date().toISOString(),
       quote: {
@@ -507,7 +535,7 @@ app.get(['/api/requests/:id', '/api/assistance_requests/:id'], authenticateToken
 app.get(['/api/requests', '/api/assistance_requests'], authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = `
-      SELECT r.id, r.user_id, r.provider_id, r.latitude, r.longitude, r.status, r.created_at,
+      SELECT r.id, r.user_id, r.provider_id, r.latitude, r.longitude, r.is_for_self, r.onsite_contact_name, r.onsite_contact_phone, r.service_type, r.status, r.created_at,
              q.estimated_cost, q.estimated_distance, q.estimated_eta_minutes,
              u.name as user_name, u.phone as user_phone, u.ev_model, u.license_plate,
              p.name as provider_name, p.phone as provider_phone
@@ -552,7 +580,7 @@ app.put(['/api/requests/:id/status', '/api/assistance_requests/:id/status'], aut
 
     // Retrieve full updated request structure for push broadcast
     const updatedRequest = await dbGet(`
-      SELECT r.id, r.user_id, r.provider_id, r.status, r.latitude, r.longitude,
+      SELECT r.id, r.user_id, r.provider_id, r.status, r.latitude, r.longitude, r.is_for_self, r.onsite_contact_name, r.onsite_contact_phone, r.service_type,
              q.estimated_cost, q.estimated_distance, q.estimated_eta_minutes,
              u.name as user_name, u.phone as user_phone, u.ev_model, u.license_plate,
              p.name as provider_name, p.phone as provider_phone

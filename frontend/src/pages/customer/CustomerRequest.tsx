@@ -164,6 +164,11 @@ export default function CustomerRequest({ requestId, navigate }: CustomerRequest
             <span className="text-xs font-mono text-skyroot-accent uppercase tracking-widest">
               DISPATCH #{request.id}
             </span>
+            {(request.is_for_self === 0 || request.is_for_self === false) && (
+              <span className="px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider bg-skyroot-accentMuted border border-skyroot-accent text-skyroot-accent hidden sm:inline-block">
+                REMOTE RESCUE FOR: {request.onsite_contact_name}
+              </span>
+            )}
           </div>
 
           <span
@@ -261,6 +266,19 @@ export default function CustomerRequest({ requestId, navigate }: CustomerRequest
                   >
                     DECLINE REQUEST
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* On-Site Contact Card for Remote Assistance */}
+            {(request.is_for_self === 0 || request.is_for_self === false) && (
+              <div className="skyroot-card p-4 border border-skyroot-accent/40 text-xs font-mono">
+                <span className="text-[10px] text-skyroot-accent uppercase tracking-widest block mb-1">
+                  ON-SITE STRANDED RECIPIENT
+                </span>
+                <div className="flex justify-between items-center text-white">
+                  <span className="font-medium text-sm">{request.onsite_contact_name || 'Stranded Person'}</span>
+                  <span className="text-emerald-400 font-bold">{request.onsite_contact_phone || '—'}</span>
                 </div>
               </div>
             )}
