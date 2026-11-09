@@ -7,7 +7,9 @@ node_modules/
 /coverage
 
 # Production
-/dist
+dist/
+build/
+*.tsbuildinfo
 
 # Miscellaneous
 .DS_Store
